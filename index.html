@@ -1,1 +1,124 @@
-Hello World
+
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<title>Chase My Mouse</title>
+		<script type="text/javascript">
+			var canvas = null;
+			var context = null;
+			var bufferCanvas = null;
+			var bufferCanvasCtx = null;
+			var mousePos = null;
+			var animateTimer = null;
+			var posX = 0;
+			var posY = 0;
+			var speed = 1.0;
+			var info = null;
+			var debug = null;
+			
+			function init() {
+				info = document.getElementById('info');
+				debug = document.getElementById('debug');
+
+				canvas = document.getElementById('shownCanvas');
+				context = canvas.getContext("2d");
+				bufferCanvas = document.createElement("canvas");
+				bufferCanvasCtx = bufferCanvas.getContext("2d");
+				bufferCanvasCtx.canvas.width = context.canvas.width;
+				bufferCanvasCtx.canvas.height = context.canvas.height;
+				blank();
+				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
+
+				canvas.addEventListener('mousemove', function(evt) {
+					mousePos = getMousePos(canvas, evt);
+					if (animateTimer != null) {
+						clearInterval(animateTimer);
+					}
+					else {
+						posX = mousePos.x;
+						posY = mousePos.y;
+					}
+					animateTimer = setInterval(animate, 10);
+				}, false);
+			}
+
+			function getMousePos(canvas, evt) {
+				var rect = canvas.getBoundingClientRect();
+				return {
+					x: evt.clientX - rect.left,
+					y: evt.clientY - rect.top
+				};
+			}
+
+			function blank() {
+				bufferCanvasCtx.fillStyle = "#330033";
+				bufferCanvasCtx.fillRect(0,0,bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+			}
+
+			function animate() {
+				Update();
+				Draw();
+				info.innerHTML=posX + ", " +  posY + "->" + mousePos.x + ", " +  mousePos.y;
+			}
+
+			function Update() {
+				var numeratorX = abs(posX - mousePos.x);
+				var numeratorY = abs(posY - mousePos.y);
+				var dominator = numeratorX + numeratorY;
+				debug.innerHTML = dominator;
+				if (dominator == 0) {
+					speed = 1.0;
+					clearInterval(animateTimer);
+					return false;
+				}
+				
+				if (speed < 16) speed += 0.7;
+				if (dominator < 300) speed = speed / 1.2 + 1;
+				speed = Math.round(speed);
+
+				var moveX = min(Math.round(speed * numeratorX / dominator), numeratorX);
+				var moveY = min(speed - moveX, numeratorY);
+				posX -= sign(posX - mousePos.x) * moveX;
+				posY -= sign(posY - mousePos.y) * moveY;
+				
+				return true;
+			}
+
+			function Draw(){
+				context.save();
+				blank();
+				bufferCanvasCtx.beginPath();
+				bufferCanvasCtx.fillStyle = "#FFFFFF";
+				bufferCanvasCtx.arc(posX,posY,10,0,2*Math.PI);
+				bufferCanvasCtx.fill(); 
+				
+				// copy the entire rendered image from the buffer canvas to the visible one
+				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
+				context.restore();
+			}
+
+			function abs(a) {
+				if (a > 0) return a;
+				return -a;
+			}
+
+			function sign(a) {
+				if (a > 0) return 1;
+				return -1;
+			}
+
+			function min(a, b) {
+				if (a > b) return b;
+				return a;
+			}
+		</script>
+	</head>
+	<body onload="init()">
+		<canvas id="shownCanvas" width="700" height="700">
+			Canvas not supported
+		</canvas>
+		<p id="info">info</p>
+		<p id="debug">debug</p>
+	</body>
+</html>
