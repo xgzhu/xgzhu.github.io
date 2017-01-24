@@ -1,0 +1,152 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<title>Chase My Mouse</title>
+		<script type="text/javascript">
+			var canvas = null;
+			var context = null;
+			var bufferCanvas = null;
+			var bufferCanvasCtx = null;
+			var animateTimer = null;
+			var mousePos = null;
+			var goalX = 0;
+			var goalY = 0;
+			var posX = 0;
+			var posY = 0;
+			var speed = 1.0;
+			var info = null;
+			var debug = null;
+			var mouseImg = null;
+			var mouseSize = 40;
+			var speedX = 0;
+			var speedY = 0;
+			var speedAngle = 0;
+			var inertia = 0;
+			var state = 0;	// 0: chase the mouse; 1: try to stop; 2: static state
+			var offsetSpeed = 100;
+			var offsetAngle = 0;
+			var offsetAngleInc = 0.1;
+			
+			function init() {
+				info = document.getElementById('info');
+				debug = document.getElementById('debug');
+
+				mouseImg = document.getElementById("mouseImg");
+
+				canvas = document.getElementById('shownCanvas');
+				context = canvas.getContext("2d");
+				bufferCanvas = document.createElement("canvas");
+				bufferCanvasCtx = bufferCanvas.getContext("2d");
+				bufferCanvasCtx.canvas.width = context.canvas.width;
+				bufferCanvasCtx.canvas.height = context.canvas.height;
+				blank(1);
+				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
+
+				canvas.addEventListener('mousemove', function(evt) {
+					mousePos = getMousePos(canvas, evt);
+					state = 1;
+					if (animateTimer == null) {
+						posX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
+						posY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+						animateTimer = setInterval(animate, 25);
+					}
+					updateGoal();
+				}, false);
+			}
+
+			function getMousePos(canvas, evt) {
+				var rect = canvas.getBoundingClientRect();
+				return {
+					x: evt.clientX - rect.left,
+					y: evt.clientY - rect.top
+				};
+			}
+
+			function blank(a) {
+				// bufferCanvasCtx.fillStyle = "#330033";
+				bufferCanvasCtx.fillStyle = "rgba(100, 0, 100, " + a + ")";
+				bufferCanvasCtx.fillRect(0,0,bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+			}
+
+			function animate() {
+				// if (Update()) Draw();
+				updateGoal();
+				updateMove();
+				drawMove();
+				info.innerHTML= posX + ", " +  posY + "->" + goalX + ", " + goalY;
+			}
+
+			function updateGoal() {
+				offsetAngle += offsetAngleInc
+				goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
+				goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+			}
+
+			function updateMove() {
+				var numeratorX = abs(posX - goalX);
+				var numeratorY = abs(posY - goalY);
+				var dominator = numeratorX + numeratorY;
+				
+				if (speed < 32) speed += 1;
+				if (dominator < 300) speed = speed / 1.2 + 1;
+				if (dominator == 0) dominator = 0.1;
+
+				speed = Math.round(speed);
+
+				speedX = inertia * speedX + (1 - inertia) * sign(goalX - posX) * min(speed * numeratorX / dominator, numeratorX);
+				speedY = inertia * speedY + (1 - inertia) * sign(goalY - posY) * min(speed * numeratorY / dominator, numeratorY);
+				posX += Math.round(speedX);
+				posY += Math.round(speedY);
+
+				angle = calculateAngle(speedX, speedY);
+				speedAngle = inertia * speedAngle + (1 - inertia) * angle;
+			}
+
+			function drawMove(){
+				bufferCanvasCtx.save();
+				blank(0.7);
+
+				debug.innerHTML = "Go at speed (" + speedX +", " + speedY + "), with angle " + speedAngle + " " + state;
+
+				bufferCanvasCtx.translate(posX, posY);
+				bufferCanvasCtx.rotate(speedAngle);
+				bufferCanvasCtx.drawImage(mouseImg, - mouseSize / 2, - mouseSize / 2, mouseSize, mouseSize);
+
+				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
+
+				bufferCanvasCtx.restore();
+			}
+
+			function calculateAngle(x, y) {
+				var z = Math.sqrt(x * x + y * y);
+				var ans = Math.acos(y/z);
+				if (x > 0) ans = Math.PI * 2 - ans;
+				return ans;
+			}
+
+			function abs(a) {
+				if (a > 0) return a;
+				return -a;
+			}
+
+			function sign(a) {
+				if (a > 0) return 1;
+				return -1;
+			}
+
+			function min(a, b) {
+				if (a > b) return b;
+				return a;
+			}
+		</script>
+	</head>
+	<body onload="init()">
+		<canvas id="shownCanvas" width="1800" height="900">
+			Canvas not supported
+		</canvas>
+		<p id="info">info</p>
+		<p id="debug">debug</p>
+		<img id="mouseImg" src="mouse-test.png" width="20" height="20" style="display:none;">
+	</body>
+</html>
