@@ -10,28 +10,19 @@
 			var bufferCanvasCtx = null;
 			var animateTimer = null;
 			var mousePos = null;
-			var goalX = 0;
-			var goalY = 0;
-			var posX = 0;
-			var posY = 0;
-			var speed = 1.0;
 			var info = null;
 			var debug = null;
+
+			var mainMoth = {goalX: 0, goalY: 0, posX: 0, posY: 0, 
+							velocity: 1.0, size: 200, series: 0, 
+							orientation: 0, state: 0};
+			var secondMoth = {goalX: 1450, goalY: 950, posX: 1450, posY: 950, 
+							velocity: 1.0, size: 120, series: 0, 
+							orientation: 0, state: 0};
 			var imgArray = null;
-			var imgSize = 200;
-			var imgNum = 0;
-			var speedX = 0;
-			var speedY = 0;
-			var speedAngle = 0;
-			var inertia = 0.3;
-			// var offsetSpeed = 0;
-			// var offsetAngle = 0;
-			// var offsetAngleInc = 0.1;
-			var state = 0;
-			var audio = null;
-			var storyPtr = -1;
-			var storyLines = [];
-			var storyTexts = [];
+			var bgImgArray = null;
+			var lightAudio = null;
+
 			
 			function init() {
 				info = document.getElementById('info');
@@ -44,46 +35,45 @@
 				bufferCanvasCtx.canvas.width = context.canvas.width;
 				bufferCanvasCtx.canvas.height = context.canvas.height;
 
-				buildImgArray();
-				buildStory();
-				blank(1);
-				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
-				audio = new Audio('about_dream.mp3');
-				audio.loop = true;
+				buildFgImgArray();
+				buildBgImgArray();
+
+				lightAudio = new Audio('fire_crackling_diegetic.mp3');
+				lightAudio.loop = true;
 
 				canvas.addEventListener('mousemove', function(evt) {
 					mousePos = getMousePos(canvas, evt);
 					if (animateTimer == null) {
-						posX = mousePos.x;
-						posY = mousePos.y;
+						mainMoth.posX = mousePos.x;
+						mainMoth.posY = mousePos.y;
 						animateTimer = setInterval(animate, 25);
 					}
-					state = 0;
-					updateGoal();
+					mainMoth.state = 0;
+					updateGoal(mainMoth);
 				}, false);
 			}
 
-			function buildImgArray() {
+			function buildFgImgArray() {
 				imgArray = [];
-				for (i = 0; i <= 96; i++) {
+				for (i = 0; i < 6; i++) {
 					var img = document.createElement("img");
-					if (i < 10)
-						img.setAttribute("src", "Jellyfish_loop/Jellyfish_loop_00000_0000"+i+".png");
-					else
-						img.setAttribute("src", "Jellyfish_loop/Jellyfish_loop_00000_000"+i+".png");
-					img.setAttribute("width", imgSize);
-					img.setAttribute("height", imgSize);
+					img.setAttribute("src", "moth_simpleflight_small/moth_simpleflight_small_0000"+i+".png");
 					imgArray.push(img);
 				}
 			}
 
-			function buildStory() {
-				storyLines.push([0, 80, 500, 200]);
-				storyTexts.push("this is a story.")
-				storyLines.push([bufferCanvasCtx.canvas.width, 280, bufferCanvasCtx.canvas.width - 500, 400]);
-				storyTexts.push("this is a story, too.")
-				storyLines.push([0, 480, 500, 600]);
-				storyTexts.push("this is a story, three. :)")
+			function buildBgImgArray() {
+				bgImgArray = [];
+				for (i = 147; i >= 0 ; i--) {
+					var img = document.createElement("img");
+					if (i < 10)
+						img.setAttribute("src", "Background0/Lights_text2_0000"+i+".png");
+					else if (i < 100)
+						img.setAttribute("src", "Background0/Lights_text2_000"+i+".png");
+					else 
+						img.setAttribute("src", "Background0/Lights_text2_00"+i+".png");
+					bgImgArray.push(img);
+				}
 			}
 
 			function getMousePos(canvas, evt) {
@@ -95,117 +85,109 @@
 			}
 
 			function blank(a) {
-				bufferCanvasCtx.fillStyle = "rgba(50, 70, 210, " + a + ")";
-				bufferCanvasCtx.fillRect(0,0,bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
-				for (i = 0; i < storyLines.length; i++) {
-					bufferCanvasCtx.strokeStyle = "rgb(20, 210, 225)";
-					bufferCanvasCtx.lineWidth=20;
-					bufferCanvasCtx.beginPath();
-					bufferCanvasCtx.moveTo(storyLines[i][0], storyLines[i][1]);
-					bufferCanvasCtx.lineTo(storyLines[i][0], storyLines[i][3]);
-					bufferCanvasCtx.stroke();
+				bufferCanvasCtx.save();
+				bufferCanvasCtx.globalAlpha = a; // [0, 392]
+				var distance = mainMoth.posX * mainMoth.posX + (mainMoth.posY - 400) * (mainMoth.posY - 400) - 100;
+				distance = Math.round(Math.sqrt(distance) / 3.5);
+				if (distance >= 148) {
+					distance = 147;
+					lightAudio.pause();
 				}
-				if (storyPtr == -1) return;
-				bufferCanvasCtx.lineWidth=2;
-				bufferCanvasCtx.textAlign = "center";
-				bufferCanvasCtx.font = "50px Comic Sans MS";
-				bufferCanvasCtx.strokeText(storyTexts[storyPtr], bufferCanvasCtx.canvas.width / 2 ,(storyLines[storyPtr][1] + storyLines[storyPtr][3]) / 2);
+				else {
+					if (lightAudio.currentTime > 10) lightAudio.currentTime = 2;
+					lightAudio.volumn = (148 - distance) / 148.0
+					lightAudio.play();
+				}
+				bufferCanvasCtx.drawImage(bgImgArray[distance], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+				bufferCanvasCtx.restore();
 			}
 
 			function animate() {
 				// if (Update()) Draw();
-				updateGoal();
-				updateMove();
+				updateGoal(mainMoth);
+				updateMove(mainMoth, 0.5, 16);
+				blank(0.8);
+				drawMove(mainMoth);
 				updateStoryLine();
-				drawMove();
-				drawStoryLine();
-				info.innerHTML= posX + ", " +  posY + "->" + goalX + ", " + goalY;
+				context.drawImage(bufferCanvas, 0, 0, bufferCanvas.width, bufferCanvas.height);
+				info.innerHTML= mainMoth.posX + ", " +  mainMoth.posY + "->" + mainMoth.goalX + ", " + mainMoth.goalY + " ---- " + secondMoth.posX + ", " +  secondMoth.posY + "->" + secondMoth.goalX + ", " + secondMoth.goalY;
+				// info.innerHTML = lightAudio.currentTime + ", " + lightAudio.volumn;
 			}
 
-			function updateGoal() {
+			function updateGoal(moth) {
 				// offsetAngle -= offsetAngleInc;
-				// goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
-				// goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
-				if (state == 0) {
-					goalX = mousePos.x;
-					goalY = mousePos.y;
+				// moth.goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
+				// moth.goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+				if (moth.state == 0) {
+					moth.goalX = mousePos.x;
+					moth.goalY = mousePos.y;
 				}
-				else if (state == 100) {
-					state = 0;
-					goalX = mousePos.x + Math.random() * 200 - 100;
-					goalY = mousePos.y + Math.random() * 200 - 100;
+				else if (moth.state == 100) {
+					moth.state = 0;
+					moth.goalX = mousePos.x + Math.random() * 200 - 100;
+					moth.goalY = mousePos.y + Math.random() * 200 - 100;
 				}
-				state++;
+				moth.state++;
 			}
 
-			function updateMove() {
-				var numeratorX = abs(posX - goalX);
-				var numeratorY = abs(posY - goalY);
+			function updateMove(moth, stepin, maxspeed) {
+				var numeratorX = abs(moth.posX - moth.goalX);
+				var numeratorY = abs(moth.posY - moth.goalY);
 				var dominator = numeratorX + numeratorY;
 				
-				if (speed < 16) speed += 0.5;
-				if (dominator < 300) speed = dominator / 20 - 1;
-				// if (dominator < 50) return;
+				if (moth.velocity < maxspeed) moth.velocity = moth.velocity + stepin;
+				if (dominator < maxspeed * 20) moth.velocity = dominator / 20 - 1;
+				if (dominator < maxspeed * 3) return;
 
-				speed = Math.round(speed);
+				moth.velocity = Math.ceil(moth.velocity);
 
-				speedX = inertia * speedX + (1 - inertia) * sign(goalX - posX) * min(speed * numeratorX / dominator, numeratorX);
-				speedY = inertia * speedY + (1 - inertia) * sign(goalY - posY) * min(speed * numeratorY / dominator, numeratorY);
-				posX += Math.round(speedX);
-				posY += Math.round(speedY);
+				var speedX = sign(moth.goalX - moth.posX) * min(moth.velocity * numeratorX / dominator, numeratorX);
+				var speedY = sign(moth.goalY - moth.posY) * min(moth.velocity * numeratorY / dominator, numeratorY);
+				moth.posX += Math.round(speedX);
+				moth.posY += Math.round(speedY);
 
-				angle = calculateAngle(speedX, speedY);
-				// speedAngle = inertia * speedAngle + (1 - inertia) * angle;
-				// speedAngle = angle;
-				speedAngle = angle + Math.PI;
+				moth.orientation = calculateAngle(speedX, speedY) + Math.PI/2;
 
-				debug.innerHTML = "Go at speed (" + speedX +", " + speedY + "), with angle " + speedAngle;
+				debug.innerHTML = "Hello world."
 			}
 
 			function updateStoryLine() {
-				var ptr = -1;
-				for (i = 0; i < storyLines.length; i++) {
-					if (((storyLines[i][0] < posX && storyLines[i][2] > posX) || (storyLines[i][0] > posX && storyLines[i][2] < posX)) && storyLines[i][1] < posY && storyLines[i][3] > posY) {
-						ptr = i;
-						break;
+				if (mainMoth.posX > 1000 && mainMoth.posY > 600) {
+					if (secondMoth.state == 0) {
+						secondMoth.goalX = mousePos.x;
+						secondMoth.goalY = mousePos.y;
 					}
-				}
-				if (storyPtr == ptr) {
-					return;
-				}
-				if (ptr != -1) {
-					audio.play();
+					else if (secondMoth.state == 25){
+						secondMoth.goalX = secondMoth.goalX + Math.random() * 100 - 50;
+						secondMoth.goalY = secondMoth.goalY + Math.random() * 100 - 50;
+						secondMoth.goalX = (secondMoth.goalX + mainMoth.goalX) / 2;
+						secondMoth.goalY = (secondMoth.goalY + mainMoth.goalY) / 2;
+						secondMoth.state = 0;
+					}
+					secondMoth.state += 1;
 				}
 				else {
-					audio.pause();
+					secondMoth.state = 0;
+					secondMoth.goalX = 1450;
+					secondMoth.goalY = 950;
 				}
-				storyPtr = ptr;
+				updateMove(secondMoth, 0.3, 4);
+				if (secondMoth.posX < 1450 && secondMoth.posY < 950)
+					drawMove(secondMoth);
 			}
 
-			function drawMove(){
+			function drawMove(moth) {
 				bufferCanvasCtx.save();
-				blank(0.6);
 
-				bufferCanvasCtx.translate(posX, posY);
-				bufferCanvasCtx.rotate(speedAngle);
-				bufferCanvasCtx.drawImage(imgArray[imgNum], - imgSize / 2, - imgSize / 2, imgSize, imgSize);
+				bufferCanvasCtx.translate(moth.posX, moth.posY);
+				bufferCanvasCtx.rotate(moth.orientation);
+				bufferCanvasCtx.drawImage(imgArray[moth.series], - moth.size / 2, - moth.size / 2, moth.size, moth.size);
 
-				imgNum += 1;
-				if (imgNum >= imgArray.length) {
-					imgNum = 0;
+				moth.series += 1;
+				if (moth.series >= imgArray.length) {
+					moth.series = 0;
 				}
 
-				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
-
-				bufferCanvasCtx.restore();
-			}
-
-			function drawStoryLine() {
-				if (storyPtr < 0) return;
-				bufferCanvasCtx.save();
-				bufferCanvasCtx.fillStyle = "rgba(255, 255, 10, 0.4)";
-				bufferCanvasCtx.fillRect(0, storyLines[storyPtr][1], bufferCanvasCtx.canvas.width, storyLines[storyPtr][3] - storyLines[storyPtr][1]);
-				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
 				bufferCanvasCtx.restore();
 			}
 
