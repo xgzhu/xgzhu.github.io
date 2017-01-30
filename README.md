@@ -11,3 +11,6 @@ Move on HTML5 Canvas
 
 2017.1.26
 Update animation project "chase-my-mouse": add light; add music; add random movement
+
+2017.1.29
+Update animation project "to moth" and replace the folder with git repo
