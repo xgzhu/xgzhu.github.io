@@ -14,3 +14,6 @@ Update animation project "chase-my-mouse": add light; add music; add random move
 
 2017.1.29
 Update animation project "to moth" and replace the folder with git repo
+
+2017.1.31
+Add more motion; add size changing

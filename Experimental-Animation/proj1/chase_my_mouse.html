@@ -30,6 +30,9 @@
 
 				canvas = document.getElementById('shownCanvas');
 				context = canvas.getContext("2d");
+				// canvas.style.width = window.innerWidth + "px";
+				// canvas.style.height = window.innerHeight + "px";
+				
 				bufferCanvas = document.createElement("canvas");
 				bufferCanvasCtx = bufferCanvas.getContext("2d");
 				bufferCanvasCtx.canvas.width = context.canvas.width;
@@ -51,13 +54,17 @@
 					mainMoth.state = 0;
 					updateGoal(mainMoth);
 				}, false);
+  
 			}
 
 			function buildFgImgArray() {
 				imgArray = [];
-				for (i = 0; i < 6; i++) {
+				for (i = 0; i <= 10; i++) {
 					var img = document.createElement("img");
-					img.setAttribute("src", "moth_simpleflight_small/moth_simpleflight_small_0000"+i+".png");
+					if (i < 10)
+						img.setAttribute("src", "moth_smoothflight/moth_smoothflight_0000"+i+".png");
+					else 
+						img.setAttribute("src", "moth_smoothflight/moth_smoothflight_000"+i+".png");
 					imgArray.push(img);
 				}
 			}
@@ -98,6 +105,7 @@
 					lightAudio.volumn = (148 - distance) / 148.0
 					lightAudio.play();
 				}
+				mainMoth.size = 200 + (148 - distance);
 				bufferCanvasCtx.drawImage(bgImgArray[distance], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
 				bufferCanvasCtx.restore();
 			}
@@ -110,7 +118,7 @@
 				drawMove(mainMoth);
 				updateStoryLine();
 				context.drawImage(bufferCanvas, 0, 0, bufferCanvas.width, bufferCanvas.height);
-				info.innerHTML= mainMoth.posX + ", " +  mainMoth.posY + "->" + mainMoth.goalX + ", " + mainMoth.goalY + " ---- " + secondMoth.posX + ", " +  secondMoth.posY + "->" + secondMoth.goalX + ", " + secondMoth.goalY;
+				info.innerHTML= mainMoth.posX + ", " +  mainMoth.posY + "->" + mainMoth.goalX + ", " + mainMoth.goalY + " ---- " + secondMoth.posX + ", " +  secondMoth.posY + "->" + secondMoth.goalX + ", " + secondMoth.goalY + "(" + mainMoth.size;
 				// info.innerHTML = lightAudio.currentTime + ", " + lightAudio.volumn;
 			}
 
@@ -137,6 +145,13 @@
 				
 				if (moth.velocity < maxspeed) moth.velocity = moth.velocity + stepin;
 				if (dominator < maxspeed * 20) moth.velocity = dominator / 20 - 1;
+
+				moth.series += 1;
+				if (moth.velocity > 8) moth.series += 1;
+				if (moth.series >= imgArray.length) {
+					moth.series -= imgArray.length;
+				}
+
 				if (dominator < maxspeed * 3) return;
 
 				moth.velocity = Math.ceil(moth.velocity);
@@ -182,11 +197,6 @@
 				bufferCanvasCtx.translate(moth.posX, moth.posY);
 				bufferCanvasCtx.rotate(moth.orientation);
 				bufferCanvasCtx.drawImage(imgArray[moth.series], - moth.size / 2, - moth.size / 2, moth.size, moth.size);
-
-				moth.series += 1;
-				if (moth.series >= imgArray.length) {
-					moth.series = 0;
-				}
 
 				bufferCanvasCtx.restore();
 			}
