@@ -21,7 +21,13 @@
 							orientation: 0, state: 0};
 			var imgArray = null;
 			var bgImgArray = null;
+			var rdImgArray = null;
+			var torchImgArray = null;
+			var torchIdx = 0;
+			var torchSize = 100;
+			var yellowLine = -1;
 			var lightAudio = null;
+			var carAudio = null;
 
 			
 			function init() {
@@ -40,9 +46,13 @@
 
 				buildFgImgArray();
 				buildBgImgArray();
+				buildRdImgArray();
+				buildTorchImgArray();
 
-				lightAudio = new Audio('fire_crackling_diegetic.mp3');
+				lightAudio = new Audio('sounds/fire_crackling_diegetic.mp3');
 				lightAudio.loop = true;
+				carAudio = new Audio('sounds/on_road.wav');
+				carAudio.loop = true;
 
 				canvas.addEventListener('mousemove', function(evt) {
 					mousePos = getMousePos(canvas, evt);
@@ -74,12 +84,33 @@
 				for (i = 147; i >= 0 ; i--) {
 					var img = document.createElement("img");
 					if (i < 10)
-						img.setAttribute("src", "Background0/Lights_text2_0000"+i+".png");
+						img.setAttribute("src", "background/Lights_text2_0000"+i+".png");
 					else if (i < 100)
-						img.setAttribute("src", "Background0/Lights_text2_000"+i+".png");
+						img.setAttribute("src", "background/Lights_text2_000"+i+".png");
 					else 
-						img.setAttribute("src", "Background0/Lights_text2_00"+i+".png");
+						img.setAttribute("src", "background/Lights_text2_00"+i+".png");
 					bgImgArray.push(img);
+				}
+			}
+			function buildRdImgArray() {
+				rdImgArray = [];
+				for (i = 0; i <= 8; i++) {
+					var img = document.createElement("img");
+					img.setAttribute("src", "yellow_highway_lines/yellowhighway lines_0000"+i+".png");
+					rdImgArray.push(img);
+				}
+			}
+			function buildTorchImgArray() {
+				torchImgArray = [];
+				for (i = 0; i <= 399 ; i++) {
+					var img = document.createElement("img");
+					if (i < 10)
+						img.setAttribute("src", "torch/torch_0000"+i+".png");
+					else if (i < 100)
+						img.setAttribute("src", "torch/torch_000"+i+".png");
+					else 
+						img.setAttribute("src", "torch/torch_00"+i+".png");
+					torchImgArray.push(img);
 				}
 			}
 
@@ -94,8 +125,10 @@
 			function blank(a) {
 				bufferCanvasCtx.save();
 				bufferCanvasCtx.globalAlpha = a; // [0, 392]
+
+
 				var distance = mainMoth.posX * mainMoth.posX + (mainMoth.posY - 400) * (mainMoth.posY - 400) - 100;
-				distance = Math.round(Math.sqrt(distance) / 3.5);
+				distance = Math.round(Math.sqrt(distance) / 3.3);
 				if (distance >= 148) {
 					distance = 147;
 					lightAudio.pause();
@@ -106,7 +139,42 @@
 					lightAudio.play();
 				}
 				mainMoth.size = 200 + (148 - distance);
-				bufferCanvasCtx.drawImage(bgImgArray[distance], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+
+				// Draw background
+				if (mainMoth.posX <= 500 || mainMoth.posX >= 800) {
+					bufferCanvasCtx.drawImage(bgImgArray[distance], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+				}
+
+				// Yellow line
+				if (mainMoth.posX > 500 && mainMoth.posX < 1000 && yellowLine == -1) {
+					yellowLine = 0;
+				}
+				
+				if (yellowLine >= 0) {
+					bufferCanvasCtx.drawImage(rdImgArray[yellowLine], 0, 0, bufferCanvas.width, bufferCanvas.height);
+					yellowLine += 1;
+					carAudio.play();
+				}
+				else {
+					carAudio.pause();
+				}
+				if (yellowLine > 8) {
+					yellowLine = -1;
+				}
+				
+				// Draw cursor curcle
+				bufferCanvasCtx.restore();
+				// bufferCanvasCtx.fillStyle = "#FFFF77";
+				// bufferCanvasCtx.beginPath();
+				// bufferCanvasCtx.arc(mousePos.x, mousePos.y, 5, 0, 2*Math.PI);
+				// bufferCanvasCtx.fill();
+				debug.innerHTML = torchIdx;
+				bufferCanvasCtx.drawImage(torchImgArray[torchIdx], mousePos.x - torchSize / 2, mousePos.y - torchSize / 2, torchSize, torchSize);
+				torchIdx += 1;
+				if (torchIdx == 400) {
+					torchIdx = 202;
+				}
+
 				bufferCanvasCtx.restore();
 			}
 
@@ -114,9 +182,9 @@
 				// if (Update()) Draw();
 				updateGoal(mainMoth);
 				updateMove(mainMoth, 0.5, 16);
-				blank(0.8);
-				drawMove(mainMoth);
+				blank(0.5);
 				updateStoryLine();
+				drawMove(mainMoth);
 				context.drawImage(bufferCanvas, 0, 0, bufferCanvas.width, bufferCanvas.height);
 				info.innerHTML= mainMoth.posX + ", " +  mainMoth.posY + "->" + mainMoth.goalX + ", " + mainMoth.goalY + " ---- " + secondMoth.posX + ", " +  secondMoth.posY + "->" + secondMoth.goalX + ", " + secondMoth.goalY + "(" + mainMoth.size;
 				// info.innerHTML = lightAudio.currentTime + ", " + lightAudio.volumn;
@@ -132,8 +200,8 @@
 				}
 				else if (moth.state == 100) {
 					moth.state = 0;
-					moth.goalX = mousePos.x + Math.random() * 200 - 100;
-					moth.goalY = mousePos.y + Math.random() * 200 - 100;
+					moth.goalX = mousePos.x + Math.random() * 300 - 150;
+					moth.goalY = mousePos.y + Math.random() * 300 - 150;
 				}
 				moth.state++;
 			}
@@ -152,7 +220,7 @@
 					moth.series -= imgArray.length;
 				}
 
-				if (dominator < maxspeed * 3) return;
+				if (dominator < maxspeed * 5) return;
 
 				moth.velocity = Math.ceil(moth.velocity);
 
@@ -163,10 +231,10 @@
 
 				moth.orientation = calculateAngle(speedX, speedY) + Math.PI/2;
 
-				debug.innerHTML = "Hello world."
 			}
 
 			function updateStoryLine() {
+				// Second moth
 				if (mainMoth.posX > 1000 && mainMoth.posY > 600) {
 					if (secondMoth.state == 0) {
 						secondMoth.goalX = mousePos.x;
@@ -225,7 +293,7 @@
 		</script>
 	</head>
 	<body onload="init()">
-		<canvas id="shownCanvas" width="1400" height="900">
+		<canvas id="shownCanvas" width="1400" height="900" style="cursor: none;">
 			Canvas not supported
 		</canvas>
 		<p id="info">info</p>

@@ -17,3 +17,6 @@ Update animation project "to moth" and replace the folder with git repo
 
 2017.1.31
 Add more motion; add size changing
+
+2017.2.1
+Update animation
