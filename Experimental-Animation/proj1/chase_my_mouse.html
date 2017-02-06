@@ -247,12 +247,14 @@
 						lightAudio.play();
 					}
 					mainMoth.size = 200 + (148 - distance);
-					if (mainMoth.posY > 300) {
+					if (mainMoth.posY <= 300) {
+						bufferCanvasCtx.drawImage(lightImgArray[0], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+					}
+					else if (mainMoth.posY > 300) {
 						debug.innerHTML = titleIdx + " " + lightImgArray.length;
 						bufferCanvasCtx.drawImage(lightImgArray[titleIdx], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
 						titleIdx++;
 					}
-					if (titleIdx >= lightImgArray.length) titleIdx = lightImgArray.length - 1;
 					if (mainMoth.posY > 700) {
 						blackBackground.alpha += 0.05;
 						if (blackBackground.alpha >= 1) blackBackground.alpha = 1;
@@ -264,6 +266,7 @@
 						blackBackground.alpha -= 0.1;
 						if (blackBackground.alpha <= 0) blackBackground.alpha = 0;
 					}
+					if (titleIdx >= lightImgArray.length) titleIdx = lightImgArray.length - 1;
 
 				}
 				bufferCanvasCtx.globalAlpha = a; // [0, 392]
@@ -516,7 +519,7 @@
 				} else if (elem.webkitRequestFullscreen) {
 				  elem.webkitRequestFullscreen();
 				}
-				beginTimer = setInterval(beginner, 50);
+				beginTimer = setInterval(beginner, 25);
 			}
 		</script>
 	</head>
