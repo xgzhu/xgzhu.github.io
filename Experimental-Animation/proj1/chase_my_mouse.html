@@ -9,26 +9,41 @@
 			var bufferCanvas = null;
 			var bufferCanvasCtx = null;
 			var animateTimer = null;
+			var beginTimer = null;
+			var transferTimer = null;
 			var mousePos = null;
 			var info = null;
 			var debug = null;
-
 			var mainMoth = {goalX: 0, goalY: 0, posX: 0, posY: 0, 
 							velocity: 1.0, size: 200, series: 0, 
 							orientation: 0, state: 0};
 			var secondMoth = {goalX: 1450, goalY: 950, posX: 1450, posY: 950, 
 							velocity: 1.0, size: 120, series: 0, 
 							orientation: 0, state: 0};
-			var imgArray = null;
-			var bgImgArray = null;
-			var rdImgArray = null;
+			var flowers = null;
+			var blackBackground = {file: null, alpha: 0};
+			var mothImgArray = null;
+			var lightImgArray = null;
+			var silImgArray = null;
+			var silIdx = 0;
+			var roadImgArray = null;
+			var roadIdx = 0;
+			var forestImgArray = null;
+			var forestIdx = 0;
+			var flowerImgArray = null;
 			var torchImgArray = null;
 			var torchIdx = 0;
 			var torchSize = 100;
-			var yellowLine = -1;
 			var lightAudio = null;
+			var doorAudio = null;
 			var carAudio = null;
-
+			var forestAudio = null;
+			var begin = false;
+			var transferIdx = 0;
+			var fireAlpha = 0;
+			var fireIdx = 0;
+			var flowerState = 0;
+			var titleIdx = 0;
 			
 			function init() {
 				info = document.getElementById('info');
@@ -36,68 +51,122 @@
 
 				canvas = document.getElementById('shownCanvas');
 				context = canvas.getContext("2d");
-				// canvas.style.width = window.innerWidth + "px";
-				// canvas.style.height = window.innerHeight + "px";
 				
 				bufferCanvas = document.createElement("canvas");
 				bufferCanvasCtx = bufferCanvas.getContext("2d");
 				bufferCanvasCtx.canvas.width = context.canvas.width;
 				bufferCanvasCtx.canvas.height = context.canvas.height;
 
-				buildFgImgArray();
-				buildBgImgArray();
-				buildRdImgArray();
+				buildMothImgArray();
+				buildLightImgArray();
+				buildRoadImgArray();
+				buildForestImgArray();
 				buildTorchImgArray();
+				buildSilImgArray();
+				buildFlowerImgArray();
+				blackBackground.file = document.createElement("img");
+				blackBackground.file.setAttribute("src", "blackbackground.png");
 
 				lightAudio = new Audio('sounds/fire_crackling_diegetic.mp3');
 				lightAudio.loop = true;
 				carAudio = new Audio('sounds/on_road.wav');
 				carAudio.loop = true;
+				forestAudio = new Audio('sounds/forest_night.wav')
+				forestAudio.loop = true;
+				doorAudio = new Audio('sounds/doorclosing.wav');
+				doorAudio.currentTime = 15;
 
 				canvas.addEventListener('mousemove', function(evt) {
-					mousePos = getMousePos(canvas, evt);
-					if (animateTimer == null) {
-						mainMoth.posX = mousePos.x;
-						mainMoth.posY = mousePos.y;
-						animateTimer = setInterval(animate, 25);
+					if (begin) {
+						mousePos = getMousePos(canvas, evt);
+						mainMoth.state = 0;
+						updateGoal(mainMoth);
 					}
-					mainMoth.state = 0;
-					updateGoal(mainMoth);
 				}, false);
   
 			}
 
-			function buildFgImgArray() {
-				imgArray = [];
+			function beginner() {
+				bufferCanvasCtx.save();
+				p = silIdx * 0.9 / silImgArray.length * bufferCanvas.width;
+				bufferCanvasCtx.drawImage(silImgArray[silIdx], bufferCanvas.width -p, 0, bufferCanvas.width, bufferCanvas.height);
+				bufferCanvasCtx.drawImage(silImgArray[silIdx], -p, 0, bufferCanvas.width, bufferCanvas.height);
+				silIdx += 1;
+				if (silIdx >= silImgArray.length/3) {
+					clearInterval(beginTimer);
+					transferTimer = setInterval(transfer, 50);
+				}
+				context.drawImage(bufferCanvas, 0, 0, bufferCanvas.width, bufferCanvas.height);
+				bufferCanvasCtx.restore();
+			}
+
+			function transfer() {
+				transferIdx = transferIdx + 0.05;
+				if (transferIdx >= 0.5) {
+					begin = true;
+					clearInterval(transferTimer);
+					mainMoth.posX = 0;
+					mainMoth.posY = 0;
+					mainMoth.goalX = 100;
+					mainMoth.goalY = 100;
+					mainMoth.state = -1;
+					animateTimer = setInterval(animate, 25);
+				}
+				// debug.innerHTML = "transfer: " + transferIdx + " " + mainMoth.posX;
+				blank(transferIdx);
+				context.drawImage(bufferCanvas, 0, 0, bufferCanvas.width, bufferCanvas.height);
+			}
+
+			function buildMothImgArray() {
+				mothImgArray = [];
 				for (i = 0; i <= 10; i++) {
 					var img = document.createElement("img");
 					if (i < 10)
 						img.setAttribute("src", "moth_smoothflight/moth_smoothflight_0000"+i+".png");
 					else 
 						img.setAttribute("src", "moth_smoothflight/moth_smoothflight_000"+i+".png");
-					imgArray.push(img);
+					mothImgArray.push(img);
+				}
+			}
+			function buildSilImgArray() {
+				silImgArray = [];
+				for (i = 94; i <= 627 ; i++) {
+					var img = document.createElement("img");
+					if (i < 100)
+						img.setAttribute("src", "Silhouette_1/Silhouette_000"+i+".png");
+					else 
+						img.setAttribute("src", "Silhouette_1/Silhouette_00"+i+".png");
+					silImgArray.push(img);
 				}
 			}
 
-			function buildBgImgArray() {
-				bgImgArray = [];
-				for (i = 147; i >= 0 ; i--) {
+			function buildLightImgArray() {
+				lightImgArray = [];
+				for (i = 0; i <= 288 ; i++) {
 					var img = document.createElement("img");
 					if (i < 10)
-						img.setAttribute("src", "background/Lights_text2_0000"+i+".png");
+						img.setAttribute("src", "titlenoalpha/titlenoalpha_0000"+i+".png");
 					else if (i < 100)
-						img.setAttribute("src", "background/Lights_text2_000"+i+".png");
-					else 
-						img.setAttribute("src", "background/Lights_text2_00"+i+".png");
-					bgImgArray.push(img);
+						img.setAttribute("src", "titlenoalpha/titlenoalpha_000"+i+".png");
+					else
+						img.setAttribute("src", "titlenoalpha/titlenoalpha_00"+i+".png");
+					lightImgArray.push(img);
 				}
 			}
-			function buildRdImgArray() {
-				rdImgArray = [];
+			function buildRoadImgArray() {
+				roadImgArray = [];
 				for (i = 0; i <= 8; i++) {
 					var img = document.createElement("img");
-					img.setAttribute("src", "yellow_highway_lines/yellowhighway lines_0000"+i+".png");
-					rdImgArray.push(img);
+					img.setAttribute("src", "whiteroad2/whiteroad2_0000"+i+".png");
+					roadImgArray.push(img);
+				}
+			}
+			function buildForestImgArray() {
+				forestImgArray = [];
+				for (i = 432; i <= 456; i++) {
+					var img = document.createElement("img");
+					img.setAttribute("src", "Forest_flicker/Forestflicker_00"+i+".png");
+					forestImgArray.push(img);
 				}
 			}
 			function buildTorchImgArray() {
@@ -105,13 +174,49 @@
 				for (i = 0; i <= 399 ; i++) {
 					var img = document.createElement("img");
 					if (i < 10)
-						img.setAttribute("src", "torch/torch_0000"+i+".png");
+						img.setAttribute("src", "torch2/torch2_0000"+i+".png");
 					else if (i < 100)
-						img.setAttribute("src", "torch/torch_000"+i+".png");
+						img.setAttribute("src", "torch2/torch2_000"+i+".png");
 					else 
-						img.setAttribute("src", "torch/torch_00"+i+".png");
+						img.setAttribute("src", "torch2/torch2_00"+i+".png");
 					torchImgArray.push(img);
 				}
+			}
+			function buildFlowerImgArray() {
+				flowers = [];
+				flowerImgArray = [];
+				var fnum = [116, 48, 96];
+				for (i = 1; i <= 3; i++) {
+					var farray = [];
+					for (j = 0; j <= fnum[i-1]; j++) {
+						var img = document.createElement("img");
+						if (j < 10)
+							img.setAttribute("src", "flowers/flower"+i+"/flower"+i+"_0000"+j+".png");
+						else if (j < 100)
+							img.setAttribute("src", "flowers/flower"+i+"/flower"+i+"_000"+j+".png");
+						else 
+							img.setAttribute("src", "flowers/flower"+i+"/flower"+i+"_00"+j+".png");
+						farray.push(img);
+					}
+					flowerImgArray.push(farray);
+				}
+				for (i = 4; i <= 10; i++) {
+					var farray = [];
+					var img = document.createElement("img");
+					img.setAttribute("src", "flowers/flowers"+i+"/flower"+i+".png");
+					farray.push(img);
+					flowerImgArray.push(farray);
+
+					var flower = {shown: false, posX: 0, posY: 0, alpha: 0, series: 0};
+					flowers.push(flower);
+				}
+				var farray = [];
+				for (i = 14446; i <= 14621; i++) {
+					var img = document.createElement("img");
+					img.setAttribute("src", "FireTree_Alpha/FireTree_Alpha_"+i+".png");
+					farray.push(img);
+				}
+				flowerImgArray.push(farray);
 			}
 
 			function getMousePos(canvas, evt) {
@@ -124,53 +229,86 @@
 
 			function blank(a) {
 				bufferCanvasCtx.save();
-				bufferCanvasCtx.globalAlpha = a; // [0, 392]
-
-
-				var distance = mainMoth.posX * mainMoth.posX + (mainMoth.posY - 400) * (mainMoth.posY - 400) - 100;
-				distance = Math.round(Math.sqrt(distance) / 3.3);
-				if (distance >= 148) {
-					distance = 147;
-					lightAudio.pause();
-				}
-				else {
-					if (lightAudio.currentTime > 10) lightAudio.currentTime = 2;
-					lightAudio.volumn = (148 - distance) / 148.0
-					lightAudio.play();
-				}
-				mainMoth.size = 200 + (148 - distance);
+				// if ()
 
 				// Draw background
-				if (mainMoth.posX <= 500 || mainMoth.posX >= 800) {
-					bufferCanvasCtx.drawImage(bgImgArray[distance], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
-				}
+				if (mainMoth.posX <= 500) {
+					var distance = mainMoth.posX * mainMoth.posX + (mainMoth.posY - 400) * (mainMoth.posY - 400) - 100;
+					distance = Math.round(Math.sqrt(distance) / 2.5);
+					if (distance >= lightImgArray.length) {
+						lightAudio.pause();
+						distance = 147;
+					}
+					else {
+						if (lightAudio.currentTime > 10) lightAudio.currentTime = 2;
+						lightAudio.volumn = (148 - distance) / 148.0
+						carAudio.pause();
+						forestAudio.pause();
+						lightAudio.play();
+					}
+					mainMoth.size = 200 + (148 - distance);
+					if (mainMoth.posY > 300) {
+						debug.innerHTML = titleIdx + " " + lightImgArray.length;
+						bufferCanvasCtx.drawImage(lightImgArray[titleIdx], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+						titleIdx++;
+					}
+					if (titleIdx >= lightImgArray.length) titleIdx = lightImgArray.length - 1;
+					if (mainMoth.posY > 700) {
+						blackBackground.alpha += 0.05;
+						if (blackBackground.alpha >= 1) blackBackground.alpha = 1;
+						bufferCanvasCtx.globalAlpha = blackBackground.alpha;
+						bufferCanvasCtx.drawImage(blackBackground.file, 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+						// doorAudio.play();
+					}
+					else {
+						blackBackground.alpha -= 0.1;
+						if (blackBackground.alpha <= 0) blackBackground.alpha = 0;
+					}
 
+				}
+				bufferCanvasCtx.globalAlpha = a; // [0, 392]
+				if (mainMoth.posX <= 500) {}
 				// Yellow line
-				if (mainMoth.posX > 500 && mainMoth.posX < 1000 && yellowLine == -1) {
-					yellowLine = 0;
-				}
-				
-				if (yellowLine >= 0) {
-					bufferCanvasCtx.drawImage(rdImgArray[yellowLine], 0, 0, bufferCanvas.width, bufferCanvas.height);
-					yellowLine += 1;
+				else if (mainMoth.posX > 500 && mainMoth.posX < 900) {
+					lightAudio.pause();
+					forestAudio.pause();
 					carAudio.play();
+					bufferCanvasCtx.drawImage(roadImgArray[roadIdx], 0, 0, bufferCanvas.width, bufferCanvas.height);
+					roadIdx += 1;
+					if (roadIdx > 8) {
+						roadIdx = 0;
+					}
 				}
+				// Forest flicker
 				else {
+					lightAudio.pause();
 					carAudio.pause();
+					forestAudio.play();
+					bufferCanvasCtx.drawImage(forestImgArray[forestIdx], 0, 0, bufferCanvas.width, bufferCanvas.height);
+					forestIdx += 1;
+					if (forestIdx > 24) {
+						forestIdx = 0;
+					}
 				}
-				if (yellowLine > 8) {
-					yellowLine = -1;
+				if (true) {
+					bufferCanvasCtx.globalAlpha = a;
+					bufferCanvasCtx.drawImage(silImgArray[silIdx], -bufferCanvas.width*0.3, 0, bufferCanvas.width, bufferCanvas.height);
+					bufferCanvasCtx.drawImage(silImgArray[silIdx], bufferCanvas.width*0.7, 0, bufferCanvas.width, bufferCanvas.height);
+					silIdx += 1;
+					if (silIdx >= silImgArray.length) {
+						silIdx = 0;
+					}
+					bufferCanvasCtx.restore();
 				}
+				drawFlowers(a);
 				
 				// Draw cursor curcle
 				bufferCanvasCtx.restore();
-				// bufferCanvasCtx.fillStyle = "#FFFF77";
-				// bufferCanvasCtx.beginPath();
-				// bufferCanvasCtx.arc(mousePos.x, mousePos.y, 5, 0, 2*Math.PI);
-				// bufferCanvasCtx.fill();
-				debug.innerHTML = torchIdx;
-				bufferCanvasCtx.drawImage(torchImgArray[torchIdx], mousePos.x - torchSize / 2, mousePos.y - torchSize / 2, torchSize, torchSize);
-				torchIdx += 1;
+				if (mousePos != null) {
+					bufferCanvasCtx.drawImage(torchImgArray[torchIdx], mousePos.x - torchSize / 2, mousePos.y - torchSize / 2, torchSize, torchSize);
+					torchIdx += 1;
+				}
+				
 				if (torchIdx == 400) {
 					torchIdx = 202;
 				}
@@ -187,6 +325,11 @@
 				drawMove(mainMoth);
 				context.drawImage(bufferCanvas, 0, 0, bufferCanvas.width, bufferCanvas.height);
 				info.innerHTML= mainMoth.posX + ", " +  mainMoth.posY + "->" + mainMoth.goalX + ", " + mainMoth.goalY + " ---- " + secondMoth.posX + ", " +  secondMoth.posY + "->" + secondMoth.goalX + ", " + secondMoth.goalY + "(" + mainMoth.size;
+				if (doorAudio.currentTime >= 17) {
+					doorAudio.pause();
+					doorAudio.currentTime = 15;
+				}
+				// debug.innerHTML=silIdx;
 				// info.innerHTML = lightAudio.currentTime + ", " + lightAudio.volumn;
 			}
 
@@ -194,7 +337,10 @@
 				// offsetAngle -= offsetAngleInc;
 				// moth.goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
 				// moth.goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
-				if (moth.state == 0) {
+				if (mousePos == null) {
+					
+				}
+				else if (moth.state == 0) {
 					moth.goalX = mousePos.x;
 					moth.goalY = mousePos.y;
 				}
@@ -216,8 +362,8 @@
 
 				moth.series += 1;
 				if (moth.velocity > 8) moth.series += 1;
-				if (moth.series >= imgArray.length) {
-					moth.series -= imgArray.length;
+				if (moth.series >= mothImgArray.length) {
+					moth.series -= mothImgArray.length;
 				}
 
 				if (dominator < maxspeed * 5) return;
@@ -230,12 +376,52 @@
 				moth.posY += Math.round(speedY);
 
 				moth.orientation = calculateAngle(speedX, speedY) + Math.PI/2;
-
 			}
 
 			function updateStoryLine() {
-				// Second moth
-				if (mainMoth.posX > 1000 && mainMoth.posY > 600) {
+				// Flowers
+				if (mainMoth.posX > 900 && mainMoth.posY <= 450) {
+					if (flowerState == 0) {
+						flowerState = 1;
+					}
+					else if (flowerState == 2) {
+						flowerState = 3;
+					}
+					if (flowerState == 1) {
+						idx = Math.floor(Math.random() * flowers.length);
+						if (flowers[idx].shown == false) {
+							flowers[idx].shown = true;
+							flowers[idx].posX = 900 + Math.floor(Math.random() * 400);
+							flowers[idx].posY = 400 - Math.floor(Math.random() * 350);
+						}
+						flowers[idx].alpha += 0.04;
+						if (flowers[idx] > 0.5) flowers[idx] = 0.5;
+						fireAlpha -= 10;
+						if (fireAlpha < 0) fireAlpha = 0;
+					}
+					else if (flowerState == 3) {
+						fireAlpha += 2;
+						idx = Math.floor(Math.random() * flowers.length);
+						flowers[idx].alpha -= 0.1;
+						if (flowers[idx].alpha < 0) {
+							flowers[idx].alpha = 0;
+							flowers[idx].shown = false;
+						}
+					}
+				}
+				else {
+					if (flowerState == 1) flowerState = 2;
+					else if (flowerState == 3) flowerState = 0;
+					idx = Math.floor(Math.random() * flowers.length);
+					flowers[idx].alpha -= 0.1;
+					if (flowers[idx].alpha < 0) {
+						flowers[idx].alpha = 0;
+						flowers[idx].shown = false;
+					}
+					fireAlpha -= 10;
+					if (fireAlpha < 0) fireAlpha = 0;
+				}
+				if (mainMoth.posX > 900 && mainMoth.posY > 450) {
 					if (secondMoth.state == 0) {
 						secondMoth.goalX = mousePos.x;
 						secondMoth.goalY = mousePos.y;
@@ -251,6 +437,8 @@
 				}
 				else {
 					secondMoth.state = 0;
+					// secondMoth.goalX = secondMoth.goalX + 20;
+					// secondMoth.goalY = secondMoth.goalY + 20;
 					secondMoth.goalX = 1450;
 					secondMoth.goalY = 950;
 				}
@@ -264,9 +452,37 @@
 
 				bufferCanvasCtx.translate(moth.posX, moth.posY);
 				bufferCanvasCtx.rotate(moth.orientation);
-				bufferCanvasCtx.drawImage(imgArray[moth.series], - moth.size / 2, - moth.size / 2, moth.size, moth.size);
+				bufferCanvasCtx.drawImage(mothImgArray[moth.series], - moth.size / 2, - moth.size / 2, moth.size, moth.size);
 
 				bufferCanvasCtx.restore();
+			}
+
+			function drawFlowers(a) {
+				for (i = 0; i < flowers.length; i++) {
+					if (flowers[i].shown) {
+						bufferCanvasCtx.save();
+						bufferCanvasCtx.globalAlpha = flowers[i].alpha * a;
+						bufferCanvasCtx.drawImage(flowerImgArray[i][flowers[i].series], flowers[i].posX, flowers[i].posY, 200, 200);
+						flowers[i].series += 1;
+						if (flowers[i].series >= flowerImgArray[i].length) {
+							flowers[i].series = 0;
+						}
+						bufferCanvasCtx.restore();
+					}
+				}
+				if (fireAlpha > 0) {
+					if (fireAlpha > 140) fireAlpha = 140;
+					alpha = (fireAlpha - 0) * 0.01;
+					bufferCanvasCtx.save();
+					bufferCanvasCtx.rotate(Math.PI);
+					bufferCanvasCtx.globalAlpha = alpha * a;
+					fireIdx += 1;
+					if (fireIdx >= flowerImgArray[flowerImgArray.length-1].length) {
+						fireIdx = 0;
+					}
+					bufferCanvasCtx.drawImage(flowerImgArray[flowerImgArray.length-1][fireIdx], -1400, -500, 500, 500);
+					bufferCanvasCtx.restore();
+				}
 			}
 
 			function calculateAngle(x, y) {
@@ -290,14 +506,26 @@
 				if (a > b) return b;
 				return a;
 			}
+
+			function fullscreen() {
+				var elem = document.getElementById('shownCanvas');
+				if (elem.requestFullscreen) {
+				  elem.requestFullscreen();
+				} else if (elem.mozRequestFullScreen) {
+				  elem.mozRequestFullScreen();
+				} else if (elem.webkitRequestFullscreen) {
+				  elem.webkitRequestFullscreen();
+				}
+				beginTimer = setInterval(beginner, 1);
+			}
 		</script>
 	</head>
 	<body onload="init()">
+		<button onclick="fullscreen()">begin!</button>
 		<canvas id="shownCanvas" width="1400" height="900" style="cursor: none;">
 			Canvas not supported
 		</canvas>
 		<p id="info">info</p>
 		<p id="debug">debug</p>
-
 	</body>
 </html>
