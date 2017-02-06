@@ -145,11 +145,11 @@
 				for (i = 0; i <= 288 ; i++) {
 					var img = document.createElement("img");
 					if (i < 10)
-						img.setAttribute("src", "titlenoalpha/titlenoalpha_0000"+i+".png");
+						img.setAttribute("src", "title3/title3_0000"+i+".png");
 					else if (i < 100)
-						img.setAttribute("src", "titlenoalpha/titlenoalpha_000"+i+".png");
+						img.setAttribute("src", "title3/title3_000"+i+".png");
 					else
-						img.setAttribute("src", "titlenoalpha/titlenoalpha_00"+i+".png");
+						img.setAttribute("src", "title3/title3_00"+i+".png");
 					lightImgArray.push(img);
 				}
 			}
@@ -246,7 +246,7 @@
 						forestAudio.pause();
 						lightAudio.play();
 					}
-					mainMoth.size = 200 + (148 - distance);
+					// mainMoth.size = 200 + (148 - distance);
 					if (mainMoth.posY <= 300) {
 						bufferCanvasCtx.drawImage(lightImgArray[0], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
 					}
@@ -474,7 +474,7 @@
 					}
 				}
 				if (fireAlpha > 0) {
-					if (fireAlpha > 140) fireAlpha = 140;
+					if (fireAlpha > 170) fireAlpha = 170;
 					alpha = (fireAlpha - 0) * 0.01;
 					bufferCanvasCtx.save();
 					bufferCanvasCtx.rotate(Math.PI);
